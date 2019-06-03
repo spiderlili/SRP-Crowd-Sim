@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Experimental.Rendering;
 using RenderPipeline = UnityEngine.Rendering.RenderPipeline;
-
+using Conditional = System.Diagnostics.ConditionalAttribute;
 public class MyPipelineInstance : RenderPipeline
 {
     protected CullingResults cullingResults;
@@ -82,7 +82,7 @@ public class MyPipelineInstance : RenderPipeline
         context.DrawRenderers(cullingResults, ref drawSettings, ref filterSettings);
 
         context.Submit();
-
-
     }
+
+    
 }
