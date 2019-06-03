@@ -29,6 +29,7 @@ public class MyPipelineInstance : RenderPipeline
         {
             return;
         }
+
         // Inject world space UI into scene view
 #if UNITY_EDITOR
         if (camera.cameraType == CameraType.SceneView)
@@ -39,6 +40,7 @@ public class MyPipelineInstance : RenderPipeline
 
         // Sends culling instructions to context
         cullingResults = context.Cull(ref cullingParameters);
+        //CullResults cull = CullResults.Cull(ref cullingParameters, context);
         //CullingResults.GetCullingParameters(camera, out cullingParameters); //redundant api
 
         //rendering step: to correctly render the skybox and scene: set up view-projection matrix 
@@ -61,8 +63,26 @@ public class MyPipelineInstance : RenderPipeline
         CameraClearFlags clearFlags = camera.clearFlags; // clear the render target with command buffers
         buffer.ClearRenderTarget((clearFlags & CameraClearFlags.Depth) != 0, (clearFlags & CameraClearFlags.Color) != 0, camera.backgroundColor);
 
+        //drawing visible shapes, instruct unity to sort the renderers by distance from front to back
+        var drawSettings = new DrawingSettings(new ShaderTagId("SRPDefaultUnlit"), new SortingSettings(camera));
+        var sortingSettings = new SortingSettings(camera);
+        sortingSettings.criteria = SortingCriteria.CommonOpaque;
+
+        var filterSettings = new FilteringSettings(RenderQueueRange.opaque);
+
+
+        context.DrawRenderers(cullingResults, ref drawSettings, ref filterSettings);
+
         context.DrawSkybox(camera);
+        //revere draw order from back tofront
+        sortingSettings.criteria = SortingCriteria.CommonTransparent;
+
+        //change the queue range to transparent after rendering skybox and render again
+        filterSettings.renderQueueRange = RenderQueueRange.transparent;
+        context.DrawRenderers(cullingResults, ref drawSettings, ref filterSettings);
 
         context.Submit();
+
+
     }
 }
