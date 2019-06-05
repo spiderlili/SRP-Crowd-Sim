@@ -4,8 +4,12 @@ using UnityEngine.Rendering;
 
 [CreateAssetMenu(menuName = "Rendering/Custom Pipeline Test")]
 public class CustomPipelineTest : RenderPipelineAsset {
+
+    [SerializeField] bool useDynamicBatching;
+    [SerializeField] bool useGpuInstancing;
     protected override RenderPipeline CreatePipeline()
     {
-        return new MyPipelineInstance();
+        return new MyPipelineInstance(useDynamicBatching, useGpuInstancing);
     }
+
 }

@@ -1,5 +1,6 @@
-﻿#ifndef MYRP_UNLIT_INCLUDED 
-#define MYRP_UNLIT_INCLUDED 
+﻿#ifndef MYRP_LIT_INCLUDED
+#define MYRP_LIT_INCLUDED
+
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl" //include core library for macros
 #pragma target 3.5
 //produces 2 shader variants, one with and one without the INSTANCING_ON keyword defined - instancing isn't always needed
@@ -46,7 +47,7 @@ struct VertexOutput {
 	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 
-VertexOutput UnlitPassVertex(VertexInput input) {
+VertexOutput LitPassVertex(VertexInput input) {
 	VertexOutput output;
 	UNITY_SETUP_INSTANCE_ID(input);
 	UNITY_TRANSFER_INSTANCE_ID(input, output);
@@ -58,7 +59,7 @@ VertexOutput UnlitPassVertex(VertexInput input) {
 }
 
 //receives the interpolated vertex output as input
-float4 UnlitPassFragment(VertexOutput input) : SV_TARGET{
+float4 LitPassFragment(VertexOutput input) : SV_TARGET{
 	UNITY_SETUP_INSTANCE_ID(input);
 	return UNITY_ACCESS_INSTANCED_PROP(PerInstance, _Color);
 	//return _Color;
@@ -66,4 +67,4 @@ float4 UnlitPassFragment(VertexOutput input) : SV_TARGET{
 }
 
 
-#endif // MYRP_UNLIT_INCLUDED
+#endif // MYRP_LIT_INCLUDED

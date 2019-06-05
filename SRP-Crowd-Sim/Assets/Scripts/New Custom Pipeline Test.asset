@@ -12,3 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4dbfd519e22096409321227e1c04e18, type: 3}
   m_Name: New Custom Pipeline Test
   m_EditorClassIdentifier: 
+  useDynamicBatching: 0
+  useGpuInstancing: 1

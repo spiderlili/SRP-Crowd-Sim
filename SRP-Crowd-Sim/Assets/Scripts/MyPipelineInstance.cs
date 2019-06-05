@@ -10,12 +10,21 @@ public class MyPipelineInstance : RenderPipeline
 {
     protected CullingResults cullingResults;
     Material errorMaterial;
+    bool useDynamicBatching;
+    bool useGPUInstancing;
 
     CommandBuffer cameraBuffer = new CommandBuffer
     {
         name = "Render Camera"
     };
+    
+    public MyPipelineInstance(bool batch, bool instancing)
+    {
+        useDynamicBatching = batch;
+        useGPUInstancing = instancing;
+    }
 
+    
     //render context = a facade for native code, cameras = all cameras that need to be rendered
     protected override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
     {
@@ -75,7 +84,12 @@ public class MyPipelineInstance : RenderPipeline
         cameraBuffer.ClearRenderTarget((clearFlags & CameraClearFlags.Depth) != 0, (clearFlags & CameraClearFlags.Color) != 0, camera.backgroundColor);
 
         //drawing step: draw visible shapes, instruct unity to sort the renderers by distance from front to back
-        var drawSettings = new DrawingSettings(new ShaderTagId("SRPDefaultUnlit"), new SortingSettings(camera));
+        var drawSettings = new DrawingSettings(new ShaderTagId("SRPDefaultUnlit"), new SortingSettings(camera) {
+        });
+        drawSettings.enableDynamicBatching = useDynamicBatching;
+        drawSettings.enableInstancing = useGPUInstancing;
+
+
         var sortingSettings = new SortingSettings(camera);
         sortingSettings.criteria = SortingCriteria.CommonOpaque;
 
