@@ -28,13 +28,13 @@ CBUFFER_START(UnityPerMaterial)
 float4 _Color;
 CBUFFER_END
 
-UNITY_INSTANCING_BUFFER_START(PerInstance)
-UNITY_DEFINE_INSTANCED_PROP(float4, _Color)
-UNITY_INSTANCING_BUFFER_END(PerInstance)
-
 //use unity_ObjectToWorld when not instancing, or a matrix array when instancing
 #define UNITY_MATRIX_M unity_ObjectToWorld
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
+
+UNITY_INSTANCING_BUFFER_START(PerInstance)
+UNITY_DEFINE_INSTANCED_PROP(float4, _Color)
+UNITY_INSTANCING_BUFFER_END(PerInstance)
 
 struct VertexInput {
 	float4 pos : POSITION; 
