@@ -10,8 +10,28 @@ public class MyPipelineInstance : RenderPipeline
 {
     protected CullingResults cullingResults;
     Material errorMaterial;
+
     bool useDynamicBatching;
     bool useGPUInstancing;
+
+    const int maxVisibleLights = 16;
+
+    //fill the buffer - shader IDs are constant per session - pass light data to gpu
+    static int visibleLightColorsId =
+    Shader.PropertyToID("_VisibleLightColors");
+    static int visibleLightDirectionsOrPositionsId =
+        Shader.PropertyToID("_VisibleLightDirectionsOrPositions");
+    static int visibleLightAttenuationsId =
+        Shader.PropertyToID("_VisibleLightAttenuations");
+    static int visibleLightSpotDirectionsId =
+        Shader.PropertyToID("_VisibleLightSpotDirections");
+    static int lightIndicesOffsetAndCountID =
+        Shader.PropertyToID("unity_LightIndicesOffsetAndCount");
+
+    Vector4[] visibleLightColors = new Vector4[maxVisibleLights];
+    Vector4[] visibleLightDirectionsOrPositions = new Vector4[maxVisibleLights];
+    Vector4[] visibleLightAttenuations = new Vector4[maxVisibleLights];
+    Vector4[] visibleLightSpotDirections = new Vector4[maxVisibleLights];
 
     CommandBuffer cameraBuffer = new CommandBuffer
     {
@@ -75,13 +95,33 @@ public class MyPipelineInstance : RenderPipeline
 
        
         cameraBuffer.ClearRenderTarget(true, false, Color.clear);
+
+        ConfigureLights();
+
+        cameraBuffer.BeginSample("Render Camera");
+
+        //copy the colour arrays to gpu by SetGlobalVectorArray on a cmd buffer then executing it
+        cameraBuffer.SetGlobalVectorArray(
+            visibleLightColorsId, visibleLightColors
+        );
+        cameraBuffer.SetGlobalVectorArray(
+            visibleLightDirectionsOrPositionsId, visibleLightDirectionsOrPositions
+        );
+        cameraBuffer.SetGlobalVectorArray(
+            visibleLightAttenuationsId, visibleLightAttenuations
+        );
+        cameraBuffer.SetGlobalVectorArray(
+            visibleLightSpotDirectionsId, visibleLightSpotDirections
+        );
         context.ExecuteCommandBuffer(cameraBuffer);
         cameraBuffer.Clear();
-        //buffer.Release();
 
         //use config per camera to determine what gets cleared in the render target, via its clear flags and background colour
         CameraClearFlags clearFlags = camera.clearFlags; // clear the render target with command buffers
         cameraBuffer.ClearRenderTarget((clearFlags & CameraClearFlags.Depth) != 0, (clearFlags & CameraClearFlags.Color) != 0, camera.backgroundColor);
+
+        context.ExecuteCommandBuffer(cameraBuffer);
+        cameraBuffer.Clear();
 
         //drawing step: draw visible shapes, instruct unity to sort the renderers by distance from front to back
         var drawSettings = new DrawingSettings(new ShaderTagId("SRPDefaultUnlit"), new SortingSettings(camera) {
@@ -110,6 +150,68 @@ public class MyPipelineInstance : RenderPipeline
         DrawDefaultPipeline(context, camera);
 
         context.Submit();
+    }
+
+    //config lights: figure out which lights are visible and have it loop through the list
+    void ConfigureLights()
+    {
+        for (int i = 0; i < cullingResults.visibleLights.Length; i++)
+        {
+            if (i == maxVisibleLights)
+            {
+                break;
+            }
+            VisibleLight light = cullingResults.visibleLights[i];
+            visibleLightColors[i] = light.finalColor;
+            Vector4 attenuation = Vector4.zero;
+            attenuation.w = 1f;
+
+            if (light.lightType == LightType.Directional)
+            {
+                Vector4 v = light.localToWorldMatrix.GetColumn(2);
+                v.x = -v.x;
+                v.y = -v.y;
+                v.z = -v.z;
+                visibleLightDirectionsOrPositions[i] = v;
+            }
+            else
+            {
+                visibleLightDirectionsOrPositions[i] =
+                    light.localToWorldMatrix.GetColumn(3);
+                attenuation.x = 1f /
+                    Mathf.Max(light.range * light.range, 0.00001f);
+
+                if (light.lightType == LightType.Spot)
+                {
+                    Vector4 v = light.localToWorldMatrix.GetColumn(2);
+                    v.x = -v.x;
+                    v.y = -v.y;
+                    v.z = -v.z;
+                    visibleLightSpotDirections[i] = v;
+
+                    float outerRad = Mathf.Deg2Rad * 0.5f * light.spotAngle;
+                    float outerCos = Mathf.Cos(outerRad);
+                    float outerTan = Mathf.Tan(outerRad);
+                    float innerCos =
+                        Mathf.Cos(Mathf.Atan((46f / 64f) * outerTan));
+                    float angleRange = Mathf.Max(innerCos - outerCos, 0.001f);
+                    attenuation.z = 1f / angleRange;
+                    attenuation.w = -outerCos * attenuation.z;
+                }
+            }
+
+            visibleLightAttenuations[i] = attenuation;
+            ++i;
+            if (i >= maxVisibleLights)
+            {
+                break;
+            }
+        }
+
+        for (int i = 0; i < maxVisibleLights; i++)
+        {
+            visibleLightColors[i] = Color.clear;
+        }
     }
 
     //only invoke this func in the editor, not in the build

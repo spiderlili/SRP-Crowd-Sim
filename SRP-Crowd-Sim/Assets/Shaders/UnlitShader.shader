@@ -1,23 +1,25 @@
-﻿Shader "Custom Pipeline/UnlitShader"
-{
-    Properties
-    {
-        _MainTex ("Texture", 2D) = "white" {}
-		_Color("Color", Color) = (1,1,1,1)
-    }
-    SubShader
-    {
-        Tags { "RenderType"="Opaque" }
-        LOD 100
+﻿Shader "My Pipeline/Unlit" {
 
-        Pass
-        {
-           HLSLPROGRAM
-#pragma vertex UnlitPassVertex
-#pragma fragment UnlitPassFragment
-#include "Unlit.hlsl"
+	Properties{
+		_Color("Color", Color) = (1, 1, 1, 1)
+	}
 
-		   ENDHLSL
-        }
-    }
+		SubShader{
+
+			Pass {
+				HLSLPROGRAM
+
+				#pragma target 3.5
+
+				#pragma multi_compile_instancing //produces 2 shader variants, one with and one without the INSTANCING_ON keyword defined - instancing isn't always needed
+				#pragma instancing_options assumeuniformscaling //disable shader option to support non-uniform scaling
+
+				#pragma vertex UnlitPassVertex
+				#pragma fragment UnlitPassFragment
+
+				#include "Unlit.hlsl"
+
+				ENDHLSL
+			}
+	}
 }
